@@ -1,0 +1,168 @@
+// TalentMatch - Prisma Schema
+// Run: prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SEEKER
+  EMPLOYER
+  ADMIN
+}
+
+enum JobStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+enum JobTier {
+  FREE
+  STANDARD
+  PREMIUM
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  SHORTLISTED
+  REJECTED
+  HIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  role          UserRole  @default(SEEKER)
+  firstName     String
+  lastName      String
+  companyName   String?   // For employers
+  companyLogo   String?
+  bio           String?
+  location      String?
+  isVerified    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  resume        Resume?
+  postedJobs    Job[]        @relation("EmployerJobs")
+  applications  Application[] @relation("SeekerApplications")
+  payments      Payment[]
+}
+
+model Resume {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Storage
+  cloudinaryId    String
+  fileUrl         String
+  fileName        String
+
+  // AI-parsed structured data
+  skills          String[] // Array of skill strings
+  experience      Json     // Array of {title, company, duration, description}
+  education       Json     // Array of {degree, institution, year}
+  summary         String?
+  yearsExperience Float    @default(0)
+  parsedAt        DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Job {
+  id              String    @id @default(uuid())
+  employerId      String
+  employer        User      @relation("EmployerJobs", fields: [employerId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String    @db.Text
+  requirements    String[]
+  skills          String[]
+  location        String
+  isRemote        Boolean   @default(false)
+  salaryMin       Int?
+  salaryMax       Int?
+  jobType         String    // FULL_TIME, PART_TIME, CONTRACT, etc.
+  experienceLevel String    // ENTRY, MID, SENIOR, LEAD
+
+  tier            JobTier   @default(FREE)
+  status          JobStatus @default(DRAFT)
+
+  // Analytics
+  viewCount       Int       @default(0)
+  applicationCount Int      @default(0)
+
+  // Payment tracking
+  paymentId       String?
+  paidAt          DateTime?
+  expiresAt       DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  applications    Application[]
+  payment         Payment?  @relation(fields: [paymentId], references: [id])
+}
+
+model Application {
+  id            String            @id @default(uuid())
+  jobId         String
+  job           Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  seekerId      String
+  seeker        User              @relation("SeekerApplications", fields: [seekerId], references: [id], onDelete: Cascade)
+
+  status        ApplicationStatus @default(PENDING)
+  coverLetter   String?           @db.Text
+
+  // AI Scoring
+  aiScore       Int?              // 0-100 overall match score
+  aiBreakdown   Json?             // Detailed breakdown by category
+  aiSummary     String?           // Human-readable AI assessment
+  scoredAt      DateTime?
+
+  // Employer notes
+  employerNotes String?
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([jobId, seekerId]) // Prevent duplicate applications
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id])
+
+  stripeSessionId   String        @unique
+  stripePaymentIntent String?
+  amount            Int           // Amount in cents
+  currency          String        @default("usd")
+  tier              JobTier
+  status            PaymentStatus @default(PENDING)
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  jobs              Job[]
+}
