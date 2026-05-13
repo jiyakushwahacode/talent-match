@@ -10,7 +10,7 @@ TalentMatch is a full-stack AI-powered job portal with:
 - **Payments**: Stripe Checkout
 - **Storage**: Cloudinary (PDF resumes)
 - **Email**: SendGrid
-- **Deploy**: Render.com
+- **Deploy**: versel.com
 
 ---
 
