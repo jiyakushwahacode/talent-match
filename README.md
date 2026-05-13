@@ -10,14 +10,14 @@ TalentMatch is a full-stack AI-powered job portal with:
 - **Payments**: Stripe Checkout
 - **Storage**: Cloudinary (PDF resumes)
 - **Email**: SendGrid
-- **Deploy**: versel.com
+- **Deploy**: vercel.com
 
 ---
 
 ## STEP 1 — Prerequisites
 
 Make sure you have accounts at:
-- [Render.com](https://render.com) (hosting)
+- [vercal.com](https://render.com) (hosting)
 - [Anthropic Console](https://console.anthropic.com) (Claude API key)
 - [Stripe Dashboard](https://dashboard.stripe.com) (payments)
 - [Cloudinary](https://cloudinary.com) (file storage)
